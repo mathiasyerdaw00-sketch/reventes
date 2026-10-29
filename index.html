@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d6b47">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Reventes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>Reventes</title>
+<style>
+/* Layout idea: one narrow column. Verdict first, four numbers second, then add form, stock and sales as plain rows. */
+:root{
+  --bg:#f5f7f5; --surface:#ffffff; --ink:#14201a; --muted:#5b6a62; --line:#dde3df;
+  --accent:#1d6b47; --accent-ink:#ffffff;
+  --good:#1d7a4b; --good-bg:#e3f2ea; --warn:#a85f00; --warn-bg:#fbefd9; --bad:#b0372b; --bad-bg:#f9e4e1;
+  --neutral-bg:#e9eeea;
+  --font:-apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,'Segoe UI',sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1411; --surface:#151c18; --ink:#e7eee9; --muted:#8fa196; --line:#25302a;
+    --accent:#5dbf8c; --accent-ink:#0b1410;
+    --good:#6fd0a0; --good-bg:#16291f; --warn:#e5a94d; --warn-bg:#2d2412; --bad:#f08a7e; --bad-bg:#321a17;
+    --neutral-bg:#1d2621;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1411; --surface:#151c18; --ink:#e7eee9; --muted:#8fa196; --line:#25302a;
+  --accent:#5dbf8c; --accent-ink:#0b1410;
+  --good:#6fd0a0; --good-bg:#16291f; --warn:#e5a94d; --warn-bg:#2d2412; --bad:#f08a7e; --bad-bg:#321a17;
+  --neutral-bg:#1d2621;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.45;-webkit-text-size-adjust:100%}
+main{max-width:640px;margin:0 auto;padding:24px 16px 64px;display:flex;flex-direction:column;gap:20px}
+h1{font-size:24px;margin:0;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+h2{font-size:12px;font-weight:600;margin:0 0 12px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.sub{color:var(--muted);font-size:14px;margin:6px 0 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px}
+.verdict{display:flex;flex-direction:column;gap:14px}
+.verdict p{margin:0;font-size:15px}
+.pill{display:inline-flex;align-self:flex-start;padding:4px 10px;border-radius:999px;font-size:13px;font-weight:600;background:var(--neutral-bg);color:var(--ink)}
+.pill.good{background:var(--good-bg);color:var(--good)}
+.pill.bad{background:var(--bad-bg);color:var(--bad)}
+.bars{display:flex;flex-direction:column;gap:12px}
+.bar-label{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--muted);margin-bottom:6px;font-variant-numeric:tabular-nums}
+.bar{height:8px;border-radius:99px;background:var(--neutral-bg);overflow:hidden}
+.bar>span{display:block;height:100%;background:var(--accent);border-radius:99px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.tile .k{font-size:13px;color:var(--muted)}
+.tile .v{font-size:24px;font-weight:600;margin-top:4px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.neg{color:var(--bad)}
+.pos{color:var(--good)}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field.full{grid-column:1/-1}
+label{font-size:13px;color:var(--muted)}
+input{font:inherit;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%;min-width:0}
+input[aria-invalid="true"]{border-color:var(--bad)}
+input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button{font:inherit;font-size:15px;font-weight:600;border:0;border-radius:8px;padding:10px 16px;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+button.ghost{background:transparent;color:var(--muted);font-weight:500;padding:6px 8px;font-size:13px}
+button.ghost:hover{color:var(--bad)}
+.actions{margin-top:14px;display:flex;flex-direction:column;gap:10px}
+.note{font-size:13px;margin:0;color:var(--muted)}
+.note.warn{color:var(--warn)}
+.list{display:flex;flex-direction:column}
+.row{display:flex;flex-direction:column;gap:10px;padding:14px 0;border-top:1px solid var(--line)}
+.row:first-child{border-top:0;padding-top:0}
+.row:last-child{padding-bottom:0}
+.row-top{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.name{font-weight:500;overflow-wrap:anywhere}
+.amount{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.meta{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.sell{display:flex;gap:8px;align-items:center}
+.sell input{flex:1}
+.empty{color:var(--muted);font-size:14px;margin:0}
+.status{font-size:13px;color:var(--warn);margin:0}
+@media (prefers-reduced-motion:no-preference){.bar>span{transition:width .3s}}
+
+#app{max-width:640px;margin:0 auto;padding:max(24px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(64px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));display:flex;flex-direction:column;gap:20px}
+.fields .field input{min-height:44px}
+button{min-height:44px}
+button.ghost{min-height:36px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+
+(function () {
+  var GOAL = 300, TEST_SALES = 10, MIN_MARGIN = 0.30, MAX_SHARE = 0.20;
+  var KEY = 'reventes.v1';
+  var state = null;
+  try { state = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+  if (!state || !Array.isArray(state.items) || typeof state.budget !== 'number') state = { budget: 900, items: [] };
+  var app = document.getElementById('app');
+  
+
+  function today() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function dayDiff(a, b) {
+    return Math.max(0, Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 86400000));
+  }
+  function shortDate(d) { return d.slice(8, 10) + '.' + d.slice(5, 7); }
+  function chf(n) { return Math.round(n).toLocaleString('fr-CH') + ' CHF'; }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function num(v) {
+    var n = parseFloat(String(v).replace(',', '.'));
+    return isFinite(n) && n >= 0 ? n : NaN;
+  }
+  function sum(list, fn) { return list.reduce(function (t, i) { return t + fn(i); }, 0); }
+  function cost(i) { return i.achat + i.frais; }
+
+  function stats() {
+    var sold = state.items.filter(function (i) { return i.vente != null; });
+    var stock = state.items.filter(function (i) { return i.vente == null; });
+    var costSold = sum(sold, cost);
+    var revenue = sum(sold, function (i) { return i.vente; });
+    var net = revenue - costSold;
+    return {
+      sold: sold, stock: stock, net: net,
+      stockCost: sum(stock, cost),
+      cash: state.budget - sum(state.items, cost) + revenue,
+      margin: costSold > 0 ? net / costSold : null,
+      days: sold.length ? sum(sold, function (i) { return dayDiff(i.date, i.dateVente); }) / sold.length : null
+    };
+  }
+
+  function verdict(s) {
+    var n = s.sold.length;
+    if (n === 0) return { cls: '', pill: 'Test à lancer', text: 'Achète 5 à 6 articles, vends-les, puis note tout ici. La décision se prend après ' + TEST_SALES + ' ventes.' };
+    if (n < TEST_SALES) {
+      var extra = s.margin !== null && s.margin < MIN_MARGIN ? ' Ta marge nette est sous 30 % : cherche des achats moins chers.' : '';
+      return { cls: '', pill: n + (n > 1 ? ' ventes' : ' vente') + ' sur ' + TEST_SALES, text: 'Test en cours. Verdict après ' + TEST_SALES + ' ventes.' + extra };
+    }
+    if (s.margin >= MIN_MARGIN) return { cls: 'good', pill: 'Marge validée', text: 'Marge nette au-dessus de 30 %. Répète et réinvestis tout.' };
+    return { cls: 'bad', pill: 'Marge trop faible', text: 'Marge nette sous 30 % après ' + TEST_SALES + ' ventes. Change de catégorie, une seule fois.' };
+  }
+
+  function bar(label, value, max, valueText) {
+    var pct = Math.max(0, Math.min(100, (value / max) * 100));
+    return '<div><div class="bar-label"><span>' + label + '</span><span>' + valueText + '</span></div>' +
+      '<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="' + max + '" aria-valuenow="' + Math.max(0, Math.round(value)) + '"><span style="width:' + pct + '%"></span></div></div>';
+  }
+
+  function renderTop() {
+    var s = stats(), v = verdict(s);
+    var marginTxt = s.margin === null ? '—' : Math.round(s.margin * 100) + ' %';
+    var daysTxt = s.days === null ? '—' : (Math.round(s.days * 10) / 10).toLocaleString('fr-CH') + ' j';
+    var netTxt = s.sold.length ? chf(s.net) : '—';
+    document.getElementById('top').innerHTML =
+      '<section class="card verdict" aria-label="Verdict">' +
+        '<span class="pill ' + v.cls + '">' + esc(v.pill) + '</span>' +
+        '<p>' + esc(v.text) + '</p>' +
+        '<div class="bars">' +
+          bar('Net réalisé', Math.max(0, s.net), GOAL, chf(s.net) + ' / ' + GOAL + ' CHF') +
+          bar('Ventes pour le verdict', s.sold.length, TEST_SALES, s.sold.length + ' / ' + TEST_SALES) +
+        '</div>' +
+      '</section>' +
+      '<section class="tiles" aria-label="Chiffres">' +
+        '<div class="tile"><div class="k">Net réalisé</div><div class="v ' + (s.sold.length && s.net < 0 ? 'neg' : '') + '">' + netTxt + '</div></div>' +
+        '<div class="tile"><div class="k">Marge nette</div><div class="v ' + (s.margin !== null && s.margin < MIN_MARGIN ? 'neg' : '') + '">' + marginTxt + '</div></div>' +
+        '<div class="tile"><div class="k">Jours pour vendre</div><div class="v">' + daysTxt + '</div></div>' +
+        '<div class="tile"><div class="k">Cash disponible</div><div class="v ' + (s.cash < 0 ? 'neg' : '') + '">' + chf(s.cash) + '</div></div>' +
+      '</section>';
+  }
+
+  function renderLists() {
+    var s = stats();
+    var stockHtml = s.stock.length ? s.stock.map(function (i) {
+      var d = dayDiff(i.date, today());
+      return '<div class="row"><div class="row-top"><span class="name">' + esc(i.nom) + '</span><span class="amount">' + chf(cost(i)) + '</span></div>' +
+        '<div class="meta">Acheté ' + chf(i.achat) + ' + ' + chf(i.frais) + ' de frais · le ' + shortDate(i.date) + ' · ' + d + ' j en stock</div>' +
+        '<div class="sell"><input id="p-' + i.id + '" type="number" inputmode="decimal" min="0" step="any" placeholder="Prix de vente (CHF)" aria-label="Prix de vente de ' + esc(i.nom) + '">' +
+        '<button type="button" data-act="sell" data-id="' + i.id + '">Vendu</button>' +
+        '<button type="button" class="ghost" data-act="del" data-id="' + i.id + '">Supprimer</button></div></div>';
+    }).join('') : '<p class="empty">Rien en stock. Exemple : vélo acheté 120 CHF, frais 15 CHF, vendu 260 CHF = 125 CHF nets (+93 %).</p>';
+
+    var sold = s.sold.slice().sort(function (a, b) { return a.dateVente < b.dateVente ? 1 : -1; });
+    var soldHtml = sold.length ? sold.map(function (i) {
+      var net = i.vente - cost(i), m = Math.round((net / cost(i)) * 100);
+      return '<div class="row"><div class="row-top"><span class="name">' + esc(i.nom) + '</span><span class="amount ' + (net < 0 ? 'neg' : 'pos') + '">' + (net >= 0 ? '+' : '') + chf(net) + '</span></div>' +
+        '<div class="meta">Coût ' + chf(cost(i)) + ' → vendu ' + chf(i.vente) + ' · marge ' + m + ' % · ' + dayDiff(i.date, i.dateVente) + ' j</div>' +
+        '<div><button type="button" class="ghost" data-act="del" data-id="' + i.id + '">Supprimer</button></div></div>';
+    }).join('') : '<p class="empty">Aucune vente pour le moment.</p>';
+
+    document.getElementById('lists').innerHTML =
+      '<section class="card"><h2>En stock · ' + s.stock.length + ' (' + chf(s.stockCost) + ' engagés)</h2><div class="list">' + stockHtml + '</div></section>' +
+      '<section class="card"><h2>Vendus · ' + s.sold.length + '</h2><div class="list">' + soldHtml + '</div></section>';
+  }
+
+  function renderAll() { renderTop(); renderLists(); }
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); }
+    catch (e) {
+      var st = document.getElementById('status');
+      st.textContent = 'Impossible d’enregistrer sur cet appareil.';
+      st.hidden = false;
+    }
+  }
+
+  function checkWarn() {
+    var a = num(document.getElementById('achat').value), f = num(document.getElementById('frais').value) || 0;
+    var s = stats(), msg = '';
+    if (!isNaN(a)) {
+      var limit = state.budget * MAX_SHARE;
+      if (a > limit) msg = 'Cet achat dépasse 20 % du budget (' + chf(limit) + '). Réduis le risque.';
+      else if (a + f > s.cash) msg = 'Pas assez de cash disponible (' + chf(s.cash) + ').';
+    }
+    var el = document.getElementById('warn');
+    el.textContent = msg || 'Règle : jamais plus de 20 % du budget sur un seul article.';
+    el.className = 'note' + (msg ? ' warn' : '');
+  }
+
+  function init() {
+    app.innerHTML =
+      '<header><h1>Reventes</h1><p class="sub">Objectif : ' + GOAL + ' CHF nets en 2 semaines. Règle : marge nette d’au moins 30 %.</p><p class="status" id="status" hidden></p></header>' +
+      '<div id="top" style="display:flex;flex-direction:column;gap:12px"></div>' +
+      '<section class="card"><h2>Nouvel achat</h2>' +
+        '<form id="add" autocomplete="off"><div class="fields">' +
+          '<div class="field full"><label for="nom">Article</label><input id="nom" type="text" placeholder="Vélo de ville, 28 pouces" maxlength="80"></div>' +
+          '<div class="field"><label for="achat">Prix d’achat (CHF)</label><input id="achat" type="number" inputmode="decimal" min="0" step="any"></div>' +
+          '<div class="field"><label for="frais">Frais (CHF)</label><input id="frais" type="number" inputmode="decimal" min="0" step="any" placeholder="0"></div>' +
+        '</div><div class="actions"><p class="note" id="warn"></p><button type="submit">Ajouter au stock</button></div></form></section>' +
+      '<div id="lists" style="display:flex;flex-direction:column;gap:20px"></div>' +
+      '<section class="card"><h2>Réglage</h2><div class="field"><label for="budget">Budget de départ (CHF)</label><input id="budget" type="number" inputmode="decimal" min="0" step="any" value="' + state.budget + '"></div>' +
+        '<div class="actions"><button type="button" class="ghost" id="bk">Copier la sauvegarde</button>' +
+        '<div class="field"><label for="rs">Restaurer : colle ta sauvegarde ici</label><input id="rs" type="text" autocomplete="off"></div>' +
+        '<button type="button" class="ghost" id="rsb">Restaurer</button><p class="note" id="bkmsg"></p></div></section>';
+
+    renderAll();
+    checkWarn();
+
+    document.getElementById('achat').addEventListener('input', checkWarn);
+    document.getElementById('frais').addEventListener('input', checkWarn);
+
+    document.getElementById('add').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var nomEl = document.getElementById('nom'), achatEl = document.getElementById('achat'), fraisEl = document.getElementById('frais');
+      var nom = nomEl.value.trim(), achat = num(achatEl.value), frais = fraisEl.value === '' ? 0 : num(fraisEl.value);
+      nomEl.setAttribute('aria-invalid', nom ? 'false' : 'true');
+      achatEl.setAttribute('aria-invalid', isNaN(achat) || achat <= 0 ? 'true' : 'false');
+      fraisEl.setAttribute('aria-invalid', isNaN(frais) ? 'true' : 'false');
+      if (!nom) { nomEl.focus(); return; }
+      if (isNaN(achat) || achat <= 0) { achatEl.focus(); return; }
+      if (isNaN(frais)) { fraisEl.focus(); return; }
+      state.items.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), nom: nom, achat: achat, frais: frais, date: today(), vente: null, dateVente: null });
+      nomEl.value = ''; achatEl.value = ''; fraisEl.value = '';
+      renderAll(); checkWarn(); save();
+    });
+
+    document.getElementById('budget').addEventListener('change', function (e) {
+      var b = num(e.target.value);
+      if (isNaN(b)) { e.target.setAttribute('aria-invalid', 'true'); return; }
+      e.target.setAttribute('aria-invalid', 'false');
+      state.budget = b;
+      renderAll(); checkWarn(); save();
+    });
+
+    document.getElementById('bk').addEventListener('click', function () {
+      var json = JSON.stringify(state), msg = document.getElementById('bkmsg');
+      var done = function () { msg.textContent = 'Sauvegarde copiée. Garde-la dans tes notes.'; };
+      var fail = function () { document.getElementById('rs').value = json; msg.textContent = 'Copie manuelle : le texte est dans le champ ci-dessus.'; };
+      try { navigator.clipboard.writeText(json).then(done, fail); } catch (e) { fail(); }
+    });
+    document.getElementById('rsb').addEventListener('click', function () {
+      var msg = document.getElementById('bkmsg'), data;
+      try { data = JSON.parse(document.getElementById('rs').value); } catch (e) { data = null; }
+      if (!data || !Array.isArray(data.items) || typeof data.budget !== 'number') { msg.textContent = 'Sauvegarde invalide.'; return; }
+      state = data; save();
+      document.getElementById('budget').value = state.budget;
+      document.getElementById('rs').value = '';
+      renderAll(); checkWarn();
+      msg.textContent = 'Sauvegarde restaurée.';
+    });
+
+    document.getElementById('lists').addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      var id = btn.getAttribute('data-id');
+      if (btn.getAttribute('data-act') === 'del') {
+        state.items = state.items.filter(function (i) { return i.id !== id; });
+        renderAll(); checkWarn(); save();
+        return;
+      }
+      var input = document.getElementById('p-' + id), price = num(input.value);
+      if (isNaN(price) || input.value === '') { input.setAttribute('aria-invalid', 'true'); input.focus(); return; }
+      state.items.forEach(function (i) { if (i.id === id) { i.vente = price; i.dateVente = today(); } });
+      renderAll(); checkWarn(); save();
+    });
+
+  }
+
+  init();
+})();
+
+if ('serviceWorker' in navigator) { window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); }); }
+try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+</script>
+</body>
+</html>
